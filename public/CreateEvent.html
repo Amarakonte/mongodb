@@ -1,0 +1,31 @@
+{{ define "CreateEvent" }}
+<html lang="en">
+{{ template "head" }}
+
+<body>
+    {{ template "header" . }}
+
+    <form class="row justify-content-md-center text-center mx-auto col-6 border border-1 p-3 rounded" method="POST" action="?" autocomplete="off">
+        <h3 class="mb-3">Créer un evenement</h3>
+
+        <input class="form-control mb-3" type="text" name="title" id="title" placeholder="Title" required />
+
+        <textarea class="form-control mb-3" type="textarea" name="description" id="description" placeholder="Description" required></textarea>
+
+        <input class="form-control mb-3" type="date" name="date" id="date" placeholder="Date" required />
+
+        <button class="btn btn-dark" type="submit">Créer new event</button>
+    </form>
+
+    {{if .eventCreated}}
+    <div class="event-created" id="event-created">
+        <div class="text-center">
+            <p>evenement créer avec succes !</p>
+        </div>
+    </div>
+    {{end}}
+</body>
+
+</html>
+
+{{end}}

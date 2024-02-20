@@ -1,0 +1,61 @@
+{{ define "header" }}
+<header class="p-3 bg-dark text-white mb-3">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mr-2 mb-lg-0 me-lg-auto text-white text-decoration-none">
+          <h2>BestEvents</h2>
+        </a>
+
+      <ul
+        class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"
+      >
+        {{if .cookieExist}}
+        <li>
+          <a
+            href="CreateEvent"
+            class="nav-link px-2 text-white"
+            >Créer un événement</a
+          >
+        </li>
+        {{end}}
+        {{ if eq .role "ADMIN" }}
+        <li><a href="/admin" class="nav-link px-2 text-white">BACK OFFICE</a></li>
+        {{end}}
+      </ul>
+
+      <form
+        class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3"
+        role="search"
+        method="GET"
+        action="/"
+      >
+        <input
+          type="search"
+          class="form-control form-control-dark text-white bg-dark"
+          name="search"
+          placeholder="Chercher un événement..."
+          aria-label="Search"
+        />
+      </form>
+
+      {{ if not .cookieExist }}
+      <div class="text-end">
+        <a href="/login">
+          <button type="button" class="btn btn-outline-light me-2">
+            Login
+          </button>
+        </a>
+        <a href="/register"
+          ><button type="button" class="btn btn-warning">Sign-up</button></a
+        >
+      </div>
+      {{ else }}
+      <a href="/profil?id={{.connectedUserId}}"><button type="button" class="btn btn-outline-light me-2">Profile : {{ .username }}</button></a>
+      <a href="/logout">
+        <button type="button" class="btn btn-warning">Log Out</button>
+      </a>
+      {{ end }}
+    </div>
+  </div>
+</header>
+{{ end }}

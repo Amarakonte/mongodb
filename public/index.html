@@ -1,0 +1,46 @@
+{{ define "index" }}
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" }}
+
+<body>
+  {{ template "header" . }}
+  <div class="container mt-5">
+    <div class="row justify-content-between">
+      {{ range .events }}
+      <div class="col-md-5 mb-4">
+        <div class="event p-3 rounded shadow-lg border border-1 border-dark">
+          <h3 class="text-center mt-2 p-2 border-bottom border-dark">{{ .Title }}</h3>
+
+          <!-- Afficher l'image -->
+          <img src="{{ .Cover_url }}" alt="{{ .Title }}" class="mt-3 img-fluid">
+
+          <hr>
+
+          <p>Date de l'événement : {{ .Date_start }}</p>
+
+          <hr>
+
+          <div class="notes">
+            <p>Rate : {{.Note}}/5 ({{.NbVote}})</p>
+          </div>
+
+          <hr>
+
+          <div class="d-flex justify-content-between">
+            <a href="/profil?id={{.User.Id}}">
+              <button type="submit" class="btn btn-dark">Voir le profil de {{.User.Username }}</button>
+            </a>
+            <a href="/Event?Id={{.Id}}">
+              <button type="submit" class="btn btn-warning">Voir l'événement</button>
+            </a>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</body>
+
+</html>
+{{ end }}

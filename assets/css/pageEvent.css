@@ -1,0 +1,59 @@
+.event-title {
+    margin: 10vh 0 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.event-container {
+    display: flex;
+    justify-content: center;
+    width: 70%;
+}
+.event-cont {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.event-actions {
+    margin: 40px 0 0 100px;
+    width: 50%;
+}
+.event-desc > div {
+    display: flex;
+    justify-content: center;
+}
+.event-desc > .event-description {
+    min-height: 200px;
+    text-align: center; /* Centrez le texte horizontalement */
+    display: block; /* Affichez le contenu en une seule colonne */
+}  
+.event-description {
+    min-height: 200px;
+    /* text-align: center; Centrez le texte horizontalement */
+}  
+.event-desc h4 {
+    text-align: center;
+    margin: 0 0 40px 0;
+}
+.event-desc {
+    margin: 40px 100px 0 0;
+    width: 50%;
+}
+.event-organisateur {
+    display: flex;
+}
+.event-organisateur p:first-child {
+    padding: 0 10px 0 0;
+}
+.all-comments, .all-participants, .new-comment {
+    margin: 50px 0;
+}
+.comment {
+    margin: 15px 0;
+}
+.all-participants {
+    display: block;
+}

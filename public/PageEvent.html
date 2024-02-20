@@ -1,0 +1,150 @@
+{{define "PageEvent"}} {{$creatorUsername := .event.User.Username}}
+{{$currentUsername := .username}} {{$idEvent := .Id_event}}
+
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" }}
+
+<body>
+  {{ template "header" . }}
+  <div class="container">
+    <div class="row justify-content-md-center text-center mx-auto w-95 border border-1 p-3 rounded">
+      <div class="event-title border-bottom">
+        <h1>{{ .event.Title }}</h1>
+      </div>
+
+      <div class="event-cont mx-auto">
+        <div class="event-container">
+          <div class="event-desc">
+            <h4 class="pb-3 border-bottom">Informations liées à l'événement</h4>
+            <div class="event-description">
+              <p>{{ .event.Description }}</p>
+            </div>
+            <div class="event-date">
+              <p>Date de début : {{ .event.Date_start }}</p>
+            </div>
+            <div class="event-date">
+              <p>Date de fin : {{ .event.Date_end }}</p>
+            </div>
+            <div class="event-organisateur">
+              <p>Organisateur:</p>
+              <a href="/profil?id={{ .event.User.Id }}">{{ .event.User.Username }}</a>
+            </div>
+          </div>
+
+          <div class="border-end"></div>
+
+          <div class="event-actions">
+            {{ if .cookieExist }}
+            <!-- Si l'utilisateur est connecté -->
+
+            {{ if ne .username .event.User.Username }}
+            <!-- Si l'utilisateur est différent de celui qui a créé l'évenement' -->
+            {{ if and (not .isAccepted) (not .hasRequested)}}
+            <div class="event-asking">
+              <form action="/Event?Id={{.Id_event}}" method="POST">
+                <input type="hidden" name="participate" value="true" />
+                <button type="submit" class="btn btn-dark">Demander à participer</button>
+              </form>
+            </div>
+            {{end}}
+            {{ if and (not .isAccepted) (.hasRequested) }}
+            <p class="border border-1 p-3 rounded bg-light">
+              Vous avez demandé à participer, en attente de la réponse de
+              l'organisateur
+            </p>
+            {{end}}
+            <div class="new-comment">
+              <form method="POST" action="/Event?Id={{.Id_event}}" autocomplete="off">
+                <h5>Créer un commentaire</h5>
+
+                <label for="commentaire">Commentaire</label>
+                <input type="text" name="commentaire" class="form-control mb-3" id="commentaire" required />
+
+                <button type="submit" class="btn btn-dark">Poster</button>
+              </form>
+            </div>
+            {{ else }}
+
+            <h5>Les demandes de participations</h5>
+            <div class="participants demande">
+              {{ range .participants }} {{ if not .Accepted }}
+              <div class="participant demande">
+                <p>{{.User.Username}}</p>
+                <form action="/Event?Id={{.Event.Id}}" method="post">
+                  <input type="hidden" name="userID_toAccept" value="{{.User.Id}}" />
+                  <button type="submit" class="btn btn-dark">Accepter ce participant</button>
+                </form>
+              </div>
+              {{end}} {{end}}
+            </div>
+            {{end}}
+
+
+            {{ end }} {{if .commentaireCreated}}
+            <div class="commentaire-created" id="commentaire-created">
+              <div>
+                <p>Le commentaire a bien été créé !</p>
+              </div>
+            </div>
+            {{end}}
+
+            <div class="all-participants border-top pt-3">
+              <h5>Tous les participants</h5>
+              <div class="participants">
+                {{ range .participants}} {{ if .Accepted}}
+                <a href="/profil?id={{.User.Id}}" class="participant">{{.User.Username}}</a>
+                {{if eq $currentUsername $creatorUsername}}
+                <form action="/Event?Id={{$idEvent}}" method="post">
+                  <input type="hidden" name="userID_toRemove" value="{{.User.Id}}" />
+                  <button type="submit" class="btn btn-dark">Retirer le participant</button>
+                </form>
+                {{end}} {{end}} {{ end }}
+              </div>
+            </div>
+
+            <div class="all-comments border-top pt-3">
+              <h5>Tout les commentaires</h5>
+              <div class="comments">
+                {{ range .comments }}
+                <div class="comment">
+                  <div class="fst-italic">
+                    {{ .Content }}
+                  </div>
+                  <div class="comment-info">
+                    {{ .CreationDate }}
+                    <a href="/profil?id={{.User.Id}}">{{ .User.Username }}</a>
+                  </div>
+                </div>
+                {{end}}
+              </div>
+            </div>
+
+            <div class="notes border-top pt-3">
+              <h5>Note de l'événement</h5>
+              {{ if .cookieExist}} {{ if .isAccepted }}
+              <p>Donner une note à l'événement</p>
+              <form action="/Event?Id={{.Id_event}}" method="post">
+                <div class="d-flex">
+                  <input type="range" class="form-range" id="note" name="note" min="0" max="5"
+                    oninput="this.nextElementSibling.value = this.value" />
+                  <output class="form-label ps-3">3</output>
+                </div>
+                <button type="submit" class="btn btn-dark">Valider la note</button>
+              </form>
+              {{end}} {{end}}
+
+              <p>{{.event.Note}}/5 ({{.event.NbVote}})</p><br>
+              <h5><a href="{{.event.Url}}" target="_blank">URL de l'évènement</a></h5>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</body>
+
+</html>
+{{end}}

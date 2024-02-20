@@ -1,0 +1,46 @@
+.register_form{
+    background-color: #d3d3d3;
+    width: 50%;
+    margin: 50px auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.register_form h3{
+    text-align: center;
+}
+
+.register_form h3, label, input, button{
+    width: 50%;
+}
+
+.register_form h3{
+    margin: 5px auto 10px;
+}
+
+.register_form input{
+    margin: 5px auto 30px;
+    padding: 5px;
+    border-right: 0;
+    border-top: 0;
+    background-color: #d3d3d3;
+    text-decoration: none;
+}
+
+input:hover, input:focus {
+    outline: none;
+    background-color: #d3d3d3;
+  }
+
+::placeholder {
+    font-size: 1.5em;
+}
+
+.register_form button{
+    margin: 5px auto 10px;
+}
+
+
+
+

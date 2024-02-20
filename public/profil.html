@@ -1,0 +1,33 @@
+{{ define "profil"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "head"}}
+
+<body>
+  {{template "header" . }}
+
+  <div class="container">
+    <div class="row justify-content-md-center text-center mx-auto col-6 border border-1 p-3 rounded">
+      <div class="mb-3 pb-3 border-bottom">
+        <h3>Profil de</h3>
+        {{.user_page.Username}}
+      </div>
+      <div class="mb-3 pb-3 border-bottom">
+        <h3>Email</h3>
+        {{.user_page.Email}}
+      </div>
+      <div class="mb-3 pb-3 border-bottom">
+        <h3>Moyenne des notes de ses événements</h3>
+        {{.user_page.Moyenne}}
+      </div>
+      <div class="">
+        <h3>Role</h3>
+        {{.user_page.Role.Name}}
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
+{{end}}
