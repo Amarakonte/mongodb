@@ -1,109 +1,76 @@
 package config
 
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
+
 func AddParticipant(id_event string, data map[string]interface{}) {
-	db := GetDB()
+	db, err := GetDB()
+	if err != nil {
+		panic(err)
+	}
 
-	query := "INSERT INTO participants (eventID, userID, accepted) VALUES (?, ?, ?)"
+	participant := Participants{
+		Event:    Event{Id: id_event},
+		User:     User{Id: GetUserID(db, data["username"].(string))}, // Passer db en tant que valeur
+		Accepted: false,
+	}
 
-	tx, err := db.Database.Begin()
+	_, err = db.Database.Collection("participants").InsertOne(context.Background(), participant)
 	if err != nil {
 		panic(err)
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
-	_, err = stmt.Exec(id_event, GetUserID(db, data["username"].(string)), false)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
 }
 
-func GetParticipants(db db, id_event string, data map[string]interface{}) {
-	rows, err := db.Database.Query("SELECT user.username, participants.accepted, participants.userID, participants.eventID FROM participants INNER JOIN user ON participants.userID = user.id WHERE participants.eventID = ?", id_event)
+func GetParticipants(db *db, id_event string, data map[string]interface{}) {
+	cursor, err := db.Database.Collection("participants").Find(context.Background(), bson.M{"event.id": id_event})
 	if err != nil {
 		panic(err)
 	}
 
 	var participants []Participants
-
-	for rows.Next() {
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
 		var participant Participants
-		rows.Scan(&participant.User.Username, &participant.Accepted, &participant.User.Id, &participant.Event.Id)
-
+		if err := cursor.Decode(&participant); err != nil {
+			panic(err)
+		}
 		participants = append(participants, participant)
 	}
 
-	defer rows.Close()
-
 	data["participants"] = participants
-
 }
 
-func AcceptParticipation(db db, id_event string, id_user string) {
-
-	tx, err := db.Database.Begin()
+func AcceptParticipation(db *db, id_event string, id_user string) {
+	_, err := db.Database.Collection("participants").UpdateOne(context.Background(), bson.M{"event.id": id_event, "user.id": id_user}, bson.M{"$set": bson.M{"accepted": true}})
 	if err != nil {
 		panic(err)
 	}
-	query := "UPDATE participants SET accepted = 1 WHERE eventID = ? AND userID = ?"
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
-	_, err = stmt.Exec(id_event, id_user)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
 }
 
-func RemoveParticipant(db db, id_event string, id_user string) {
-	tx, err := db.Database.Begin()
+func RemoveParticipant(db *db, id_event string, id_user string) {
+	_, err := db.Database.Collection("participants").DeleteOne(context.Background(), bson.M{"event.id": id_event, "user.id": id_user})
 	if err != nil {
 		panic(err)
 	}
-	query := "DELETE FROM participants WHERE eventID = ? AND userID = ?"
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
-	_, err = stmt.Exec(id_event, id_user)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
 }
 
-func IsParticipant(db db, id_event string, data map[string]interface{}) bool {
-
-	rows, err := db.Database.Query("SELECT accepted FROM participants WHERE eventID = ? AND userID = ?", id_event, GetUserID(db, data["username"].(string)))
+func IsParticipant(db *db, id_event string, data map[string]interface{}) bool {
+	cursor, err := db.Database.Collection("participants").Find(context.Background(), bson.M{"event.id": id_event, "user.id": GetUserID(db, data["username"].(string)), "accepted": true})
 	if err != nil {
 		panic(err)
 	}
 
-	var isAccepted bool
-	for rows.Next() {
-		rows.Scan(&isAccepted)
-	}
-	defer rows.Close()
-
-	return isAccepted
+	return cursor.Next(context.Background())
 }
 
-func HasRequestedParticipation(db db, id_event string, data map[string]interface{}) bool {
-	rows, err := db.Database.Query("SELECT COUNT(*) FROM participants WHERE eventID = ? AND userID = ?", id_event, GetUserID(db, data["username"].(string)))
+func HasRequestedParticipation(db *db, id_event string, data map[string]interface{}) bool {
+	cursor, err := db.Database.Collection("participants").Find(context.Background(), bson.M{"event.id": id_event, "user.id": GetUserID(db, data["username"].(string))})
 	if err != nil {
 		panic(err)
 	}
 
-	var requested int
-	for rows.Next() {
-		rows.Scan(&requested)
-	}
-
-	defer rows.Close()
-
-	return requested > 0
+	return cursor.Next(context.Background())
 }

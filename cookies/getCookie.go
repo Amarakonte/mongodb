@@ -9,12 +9,19 @@ import (
 
 // Verify if a cookie exist, add a boolean Value to the map
 func GetCookie(w http.ResponseWriter, data_info map[string]interface{}, r *http.Request) {
+	// get database connection and error
+	db, err := config.GetDB()
+	if err != nil {
+		panic(err) // Gérer l'erreur selon vos besoins
+	}
+	defer db.CloseDB() // Assurez-vous que la connexion se ferme lorsque la fonction main() se termine
+
 	// get cookie
 	cookie, err := r.Cookie("session")
 	if err == nil && data_info["user"] != "" {
 		data_info["cookieExist"] = true
 		data_info["username"] = data_info["user"]
-		data_info["connectedUserId"] = config.GetUserID(config.GetDB(), data_info["user"].(string))
+		data_info["connectedUserId"] = config.GetUserID(db, data_info["user"].(string))
 		// Recréé un cookie pour réinitialiser le temps d'expéritation
 		id := uuid.NewV4()
 		cookie = &http.Cookie{

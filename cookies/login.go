@@ -1,28 +1,37 @@
 package cookies
 
 import (
+	"context"
 	"hackaton/app/config"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func SearchUserToLog(data_logIn map[string]interface{}, user_login string, password_login string, data map[string]interface{}) bool {
 	var create_cookie = false
 
-	db := config.GetDB()
+	db, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
 	defer db.CloseDB() // Assurez-vous que la connexion se ferme lorsque la fonction main() se termine
 
 	// Parcourir la BDD
-	rows, err := db.Database.Query("SELECT username, password FROM user")
+	rows, err := db.Database.Collection("user").Find(context.Background(), bson.M{})
 	if err != nil {
 		panic(err)
 	}
 
-	var username, password string
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&username, &password)
-		if user_login == username && password == password_login {
-			user := config.GetUser(config.GetDB(), data, config.GetUserID(config.GetDB(), username))
+	defer rows.Close(context.Background())
+	for rows.Next(context.Background()) {
+		var user config.User
+		err := rows.Decode(&user)
+		if err != nil {
+			panic(err)
+		}
+
+		if user_login == user.Username && password_login == user.Password {
 			create_cookie = true
 			data["user"] = user.Username
 			data["role"] = user.Role.Name
@@ -36,7 +45,7 @@ func SearchUserToLog(data_logIn map[string]interface{}, user_login string, passw
 }
 
 func SetDataToSend(w http.ResponseWriter, r *http.Request, data_info map[string]interface{}, data map[string]interface{}, on_user_page bool, user_page string) {
-	// Copy the main map to get all important info
+	// Copiez la carte principale pour obtenir toutes les informations importantes
 	for k, v := range data {
 		data_info[k] = v
 	}

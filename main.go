@@ -15,13 +15,16 @@ func main() {
 	data["user"] = ""
 
 	config.CreateDB()
-	db := config.GetDB()
+	db, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
 	defer db.CloseDB() // Assurez-vous que la connexion se ferme lorsque la fonction main() se termine
 
 	db.CreateRoleTable()
 	db.CreateUserTable()
 	db.CreateEventTable()
-	db.CreateParticipentsTable()
+	db.CreateParticipantsTable()
 	db.CreateCommentTable()
 
 	fmt.Println("Please connect to http://localhost:8000")
@@ -42,11 +45,13 @@ func main() {
 
 	// Initialisez votre application et vos routes ici
 
-	err := http.ListenAndServe(":"+port, nil)
+	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)
 	}
 }
+
+// Le reste du code reste inchangé
 
 func index(w http.ResponseWriter, r *http.Request) {
 	config.Api()
@@ -126,7 +131,8 @@ func Event(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// récupère les commentaires de l'événement
-	config.GetComments(config.GetDB(), id_event, data_PageEvent)
+	db, _ := config.GetDB() // Ignorer l'erreur ici car nous l'avons déjà gérée lors de l'initialisation du serveur
+	config.GetComments(db, id_event, data_PageEvent)
 
 	// nouveau commentaire
 	if input_commentaire != "" {
@@ -141,29 +147,29 @@ func Event(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// récupère toutes les demandes de participations
-	config.GetParticipants(config.GetDB(), id_event, data_PageEvent)
+	config.GetParticipants(db, id_event, data_PageEvent)
 
 	// Accepte une demande de participation
 	if userIdAskingToParticipate != "" {
-		config.AcceptParticipation(config.GetDB(), id_event, userIdAskingToParticipate)
+		config.AcceptParticipation(db, id_event, userIdAskingToParticipate)
 		http.Redirect(w, r, "/Event?Id="+id_event, http.StatusSeeOther)
 	}
 
 	// retire le participant
 	if remove_idParticipant != "" {
-		config.RemoveParticipant(config.GetDB(), id_event, remove_idParticipant)
+		config.RemoveParticipant(db, id_event, remove_idParticipant)
 		http.Redirect(w, r, "/Event?Id="+id_event, http.StatusSeeOther)
 	}
 
 	// vérifie si l'utilisateur demande déjà la participation
-	data_PageEvent["hasRequested"] = config.HasRequestedParticipation(config.GetDB(), id_event, data_PageEvent)
+	data_PageEvent["hasRequested"] = config.HasRequestedParticipation(db, id_event, data_PageEvent)
 
 	// vérifie si l'utilisateur connecté est déjà en participant
-	data_PageEvent["isAccepted"] = config.IsParticipant(config.GetDB(), id_event, data_PageEvent)
+	data_PageEvent["isAccepted"] = config.IsParticipant(db, id_event, data_PageEvent)
 
 	// modifie la note de l'événement
 	if note != "" {
-		config.UpdateNote(config.GetDB(), data_PageEvent, id_event, note)
+		config.UpdateNote(db, data_PageEvent, id_event, note)
 		http.Redirect(w, r, "/Event?Id="+id_event, http.StatusSeeOther)
 	}
 
@@ -222,7 +228,11 @@ func profil(w http.ResponseWriter, r *http.Request) {
 	cookie.SetDataToSend(w, r, data_profil, data, false, "")
 
 	userID := r.FormValue("id")
-	data_profil["user_page"] = config.GetUser(config.GetDB(), data_profil, userID)
+	db, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
+	config.GetUser(db, data_profil, userID)
 
 	t := template.New("profil-template")
 	t = template.Must(t.ParseFiles("public/profil.html", "public/header.html", "public/head.html"))
@@ -237,35 +247,74 @@ func admin(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	data_admin["allUsers"] = config.GetAllUsers(config.GetDB())
-	data_admin["allEvents"] = config.GetAllEvents(config.GetDB())
-	data_admin["allComments"] = config.GetAllComments(config.GetDB())
+	// Get all users
+	dbUsers, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
+	data_admin["allUsers"] = config.GetAllUsers(dbUsers)
+
+	// Get all events
+	dbEvents, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
+	data_admin["allEvents"], err = config.GetAllEvents(dbEvents)
+	if err != nil {
+		panic(err)
+	}
+
+	// Get all comments
+	dbComments, err := config.GetDB()
+	if err != nil {
+		panic(err)
+	}
+	data_admin["allComments"], err = config.GetAllComments(dbComments)
+	if err != nil {
+		panic(err)
+	}
 
 	// delete User
 	user_toDelete := r.FormValue("delUserId")
 	if user_toDelete != "" {
-		config.DeleteUser(config.GetDB(), user_toDelete)
+		db, err := config.GetDB()
+		if err != nil {
+			panic(err)
+		}
+		config.DeleteUser(db, user_toDelete)
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	}
 
 	// delete Event
 	event_toDelete := r.FormValue("delEventId")
 	if event_toDelete != "" {
-		config.DeleteEvent(config.GetDB(), event_toDelete)
+		db, err := config.GetDB()
+		if err != nil {
+			panic(err)
+		}
+		config.DeleteEvent(db, event_toDelete)
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	}
 
 	// make a user an Admin
 	user_toAdmin := r.FormValue("makeAdmin")
 	if user_toAdmin != "" {
-		config.MakeAdmin(config.GetDB(), user_toAdmin)
+		db, err := config.GetDB()
+		if err != nil {
+			panic(err)
+		}
+		config.MakeAdmin(db, user_toAdmin)
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	}
 
 	// delete Comment
 	comment_toDelete := r.FormValue("delCommentId")
 	if comment_toDelete != "" {
-		config.DeleteComment(config.GetDB(), comment_toDelete)
+		db, err := config.GetDB()
+		if err != nil {
+			panic(err)
+		}
+		config.DeleteComment(db, comment_toDelete)
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 	}
 

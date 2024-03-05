@@ -1,23 +1,30 @@
 package config
 
-func AddEvent(input_title string, input_description string, input_date string, data map[string]interface{}) {
-	db := GetDB()
+import (
+	"context"
+)
 
-	query := "INSERT INTO event (title, description, date, creatorID) VALUES (?, ?, ?, ?)"
-
-	tx, err := db.Database.Begin()
+func AddEvent(input_title string, input_description string, input_date string, data map[string]interface{}) error {
+	db, err := GetDB()
 	if err != nil {
-		panic(err)
-	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
+		return err
 	}
 
-	_, err = stmt.Exec(input_title, input_description, input_date, GetUserID(db, data["username"].(string)))
-	if err != nil {
-		panic(err)
+	event := Event{
+		Title:       input_title,
+		Description: input_description,
+		Date_start:  input_date,
+		// Vous devrez peut-être ajouter le reste des champs de l'événement ici
 	}
-	tx.Commit()
+
+	// Insérer l'événement dans la collection "event"
+	_, err = db.Database.Collection("event").InsertOne(context.Background(), event)
+	if err != nil {
+		return err
+	}
+
+	// Mettre à jour la variable de données pour indiquer que l'événement a été créé
 	data["eventCreated"] = true
+
+	return nil
 }

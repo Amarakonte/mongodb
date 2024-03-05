@@ -1,14 +1,16 @@
 package config
 
 import (
-	"database/sql"
+	"context"
 
-	_ "github.com/go-sql-driver/mysql"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var userDB = "root"
-var ip = "localhost"
-var port = "3306"
+var (
+	ip   = "localhost"
+	port = "27017"
+)
 
 type APIResponse struct {
 	TotalCount int     `json:"total_count"`
@@ -20,9 +22,11 @@ type Event struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Date_start  string `json:"date_start"`
-	Date_end    string `json:"date_end"`
-	Url         string `json:"url"`
-	Cover_url   string `json:"cover_url"`
+	Date_endK   string `json:"date_end"`
+	URL         string `json:"url"`
+	CoverURL    string `json:"cover_url"`
+	CreatorID   string
+	Timestamp   int64
 	User        User
 	Note        string
 	NbVote      string
@@ -43,6 +47,8 @@ type User struct {
 	Moyenne  string
 	Role     Role
 	Events   []Event
+	Password string
+	RoleID   int
 }
 
 type Participants struct {
@@ -56,20 +62,35 @@ type Role struct {
 }
 
 type db struct {
-	Database *sql.DB
+	Client   *mongo.Client
+	Database *mongo.Database
 }
 
-func GetDB() db {
-	var databases db
+func GetDB() (*db, error) {
+	// Connexion à MongoDB
+	clientOptions := options.Client().ApplyURI("mongodb://" + ip + ":" + port)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
 
-	databases.Database, _ = sql.Open("mysql", (userDB + "@tcp(" + ip + ":" + port + ")/hackaton"))
+	// Vérification de la connexion
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return databases
+	database := client.Database("hackaton")
+
+	return &db{
+		Client:   client,
+		Database: database,
+	}, nil
 }
 
 // Fermez la connexion à la base de données lorsque vous n'en avez plus besoin
 func (d *db) CloseDB() {
-	if d.Database != nil {
-		d.Database.Close()
+	if d.Client != nil {
+		d.Client.Disconnect(context.Background())
 	}
 }

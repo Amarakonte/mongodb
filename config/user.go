@@ -1,156 +1,128 @@
 package config
 
 import (
+	"context"
 	"log"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-var username, email string
-
 func AddUser(input_username string, input_email string, input_password string, info map[string]interface{}) {
-	db := GetDB()
-
-	// range over the database and check if there is double username/email
-	rows, err := db.Database.Query("SELECT username, email FROM user")
+	db, err := GetDB()
 	if err != nil {
 		panic(err)
 	}
-	for rows.Next() {
-		rows.Scan(&username, &email)
-		//stop the function if a double is found
-		if username == input_username {
-			info["credentials_used"] = true
-			rows.Close()
-			return
-		} else if email == input_email {
-			info["credentials_used"] = true
-			rows.Close()
-			return
-		}
+
+	// Vérifiez si l'utilisateur existe déjà dans la base de données
+	var existingUser User
+	err = db.Database.Collection("user").FindOne(context.Background(), bson.M{"username": input_username}).Decode(&existingUser)
+	if err == nil {
+		info["credentials_used"] = true
+		return
 	}
 
-	rows.Close()
+	err = db.Database.Collection("user").FindOne(context.Background(), bson.M{"email": input_email}).Decode(&existingUser)
+	if err == nil {
+		info["credentials_used"] = true
+		return
+	}
 
-	// Compte le nb d'utiliteur, le 1er sera Admin
-	rows, err = db.Database.Query("SELECT COUNT(*) FROM user")
+	// Déterminez le rôle de l'utilisateur en fonction du nombre d'utilisateurs dans la base de données
+	var roleID int
+	count, err := db.Database.Collection("user").CountDocuments(context.Background(), bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	var count int
-	for rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			log.Fatal(err)
-		}
-	}
 
-	defer rows.Close()
-
-	query := "INSERT INTO user (username, email, password, roleID) VALUES (?, ?, ?, ?)"
-	tx, err := db.Database.Begin()
-	if err != nil {
-		panic(err)
-	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
 	if count > 0 {
-		_, err = stmt.Exec(input_username, input_email, input_password, 1)
+		roleID = 2
 	} else {
-		_, err = stmt.Exec(input_username, input_email, input_password, 2)
+		roleID = 1
 	}
+
+	// Insérez le nouvel utilisateur dans la base de données
+	user := User{
+		Username: input_username,
+		Email:    input_email,
+		Password: input_password,
+		RoleID:   roleID,
+	}
+
+	_, err = db.Database.Collection("user").InsertOne(context.Background(), user)
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
+
 	info["accountCreated"] = true
-
-	// // Test d'envoie de mail
-	// auth := smtp.PlainAuth("", "user@example.com", "password", "mail.example.com")
-
-	// to := []string{input_email}
-	// msg := []byte("To: " + input_email + "\r\n" +
-	// 	"Sujet: Inscription terminée!\r\n" +
-	// 	"\r\n" +
-	// 	"This is the email body.\r\n")
-	// err = smtp.SendMail("mail.example.com:1025", auth, "sender@example.org", to, msg)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 }
 
-func GetUserID(db db, username string) string {
-	rows, err := db.Database.Query("SELECT id FROM user WHERE username = ?", username)
-	if err != nil {
-		panic(err)
-	}
-	var user_id string
-	for rows.Next() {
-		rows.Scan(&user_id)
-	}
-	rows.Close()
-	return user_id
-}
-
-func GetUser(db db, data map[string]interface{}, user_id string) User {
-	rows, err := db.Database.Query("SELECT user.username, user.email, role.name, SUM(event.note)/COUNT(event.id) FROM user INNER JOIN event ON event.creatorID = user.id INNER JOIN role ON role.id = user.roleID WHERE user.id = ?", user_id)
-	if err != nil {
-		panic(err)
-	}
+// Les autres fonctions de users.go restent les mêmes
+func GetUserID(db *db, username string) string {
 	var user User
-	for rows.Next() {
-		rows.Scan(&user.Username, &user.Email, &user.Role.Name, &user.Moyenne)
+	err := db.Database.Collection("user").FindOne(context.Background(), bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		// Gérer l'erreur, par exemple en renvoyant une chaîne vide
+		log.Println("Erreur lors de la recherche de l'utilisateur:", err)
+		return ""
 	}
-	rows.Close()
+
+	return user.Id
+}
+
+func GetUser(db *db, data map[string]interface{}, user_id string) User {
+	var user User
+	err := db.Database.Collection("user").FindOne(context.Background(), bson.M{"_id": user_id}).Decode(&user)
+	if err != nil {
+		log.Println("Erreur lors de la recherche de l'utilisateur:", err)
+		// Gérer l'erreur, par exemple en renvoyant un utilisateur vide
+		return User{}
+	}
 
 	return user
 }
 
-func GetAllUsers(db db) []User {
-	rows, err := db.Database.Query("SELECT user.id, user.username, user.email, role.name FROM `user` INNER JOIN role ON role.id = user.roleID ORDER BY user.id")
-	if err != nil {
-		panic(err)
-	}
+func GetAllUsers(db *db) []User {
 	var users []User
-	for rows.Next() {
+	cursor, err := db.Database.Collection("user").Find(context.Background(), bson.M{})
+	if err != nil {
+		log.Println("Erreur lors de la recherche de tous les utilisateurs:", err)
+		// Gérer l'erreur, par exemple en renvoyant une liste d'utilisateurs vide
+		return []User{}
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
 		var user User
-		rows.Scan(&user.Id, &user.Username, &user.Email, &user.Role.Name)
+		err := cursor.Decode(&user)
+		if err != nil {
+			log.Println("Erreur lors du décodage de l'utilisateur:", err)
+			// Gérer l'erreur, par exemple en continuant à parcourir les résultats
+			continue
+		}
 		users = append(users, user)
 	}
-	rows.Close()
+
+	if err := cursor.Err(); err != nil {
+		log.Println("Erreur lors du parcours des résultats des utilisateurs:", err)
+		// Gérer l'erreur, par exemple en renvoyant une liste d'utilisateurs incomplète
+		return users
+	}
 
 	return users
 }
 
-func DeleteUser(db db, user_id string) {
-	tx, err := db.Database.Begin()
+// Les autres fonctions restent similaires, en utilisant les méthodes appropriées de mongo.Database
+
+func DeleteUser(db *db, user_id string) {
+	_, err := db.Database.Collection("user").DeleteOne(context.Background(), bson.M{"_id": user_id})
 	if err != nil {
 		panic(err)
 	}
-	// Supprimer la ligne de l'utilisateur dans la BDD users
-	stmt, err := tx.Prepare("DELETE FROM user WHERE id = ?")
-	if err != nil {
-		panic(err)
-	}
-	_, err = stmt.Exec(user_id)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
 }
 
-func MakeAdmin(db db, userID string) {
-	tx, err := db.Database.Begin()
+func MakeAdmin(db *db, userID string) {
+	_, err := db.Database.Collection("user").UpdateOne(context.Background(), bson.M{"_id": userID}, bson.M{"$set": bson.M{"roleID": 2}})
 	if err != nil {
 		panic(err)
 	}
-	query := "UPDATE user SET roleID = 2 WHERE id = ?"
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
-	_, err = stmt.Exec(userID)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
 }
