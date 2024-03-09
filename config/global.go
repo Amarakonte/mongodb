@@ -24,7 +24,7 @@ type Event struct {
 	Date_start  string `json:"date_start"`
 	Date_end    string `json:"date_end"`
 	URL         string `json:"url"`
-	CoverURL    string `json:"cover_url"`
+	Cover_url   string `json:"cover_url"`
 	CreatorID   string
 	Timestamp   int64
 	User        User
