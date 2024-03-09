@@ -11,6 +11,25 @@ import (
 
 var data = make(map[string]interface{})
 
+// FilterEvents filtre les événements en fonction du titre et de la description
+func FilterEvents(events []config.Event, title, description string) []config.Event {
+	var filteredEvents []config.Event
+
+	for _, event := range events {
+		if title != "" && event.Title != title {
+			continue // Si le titre ne correspond pas, passez à l'événement suivant
+		}
+		if description != "" && event.Description != description {
+			continue // Si la description ne correspond pas, passez à l'événement suivant
+		}
+
+		// Si l'événement correspond aux critères de recherche, ajoutez-le à la liste filtrée
+		filteredEvents = append(filteredEvents, event)
+	}
+
+	return filteredEvents
+}
+
 func main() {
 	data["user"] = ""
 

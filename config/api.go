@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -47,9 +48,13 @@ func Api() {
 		event.CreatorID = creatorID
 		event.Timestamp = time.Now().Unix()
 
-		_, err := eventCollection.InsertOne(context.Background(), event)
+		// Utiliser l'opérateur upsert pour mettre à jour ou insérer le document
+		filter := bson.M{"id": event.Id} // Utilisez un champ unique comme filtre (id dans ce cas)
+		update := bson.M{"$set": event}  // Mettre à jour avec les données de l'événement
+		_, err := eventCollection.UpdateOne(context.Background(), filter, update, options.Update().SetUpsert(true))
 		if err != nil {
-			fmt.Println("Erreur lors de l'insertion dans la base de données MongoDB:", err)
+			fmt.Println("Erreur lors de l'insertion/mise à jour dans la base de données MongoDB:", err)
 		}
 	}
+
 }

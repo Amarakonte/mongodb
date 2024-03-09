@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// DisplayEvents récupère les événements de la base de données et les affiche en fonction du critère de recherche
 func DisplayEvents(data map[string]interface{}, searching string) error {
 	db, err := GetDB()
 	if err != nil {
@@ -15,30 +16,36 @@ func DisplayEvents(data map[string]interface{}, searching string) error {
 
 	var events []Event
 
+	// Définir le filtre de recherche en fonction du critère de recherche
 	filter := bson.M{}
 	if searching != "" {
-		filter["title"] = searching
+		filter["$or"] = []bson.M{
+			{"title": bson.M{"$regex": searching, "$options": "i"}},
+			{"date_start": bson.M{"$regex": searching, "$options": "i"}},
+		}
 	}
 
+	// Récupérer les événements correspondant au filtre
 	cursor, err := db.Database.Collection("event").Find(context.Background(), filter)
 	if err != nil {
 		return err
 	}
-
 	defer cursor.Close(context.Background())
 
+	// Parcourir les événements récupérés et les ajouter à la liste des événements à afficher
 	for cursor.Next(context.Background()) {
 		var event Event
 		if err := cursor.Decode(&event); err != nil {
 			return err
 		}
 
-		// Remplace les \n par des <br> pour sauter des lignes en html
+		// Remplacer les sauts de ligne par <br> pour l'affichage HTML
 		event.Description = strings.Replace(strings.Replace(event.Description, "\r", "", -1), "\n", "<br>", -1)
 
 		events = append(events, event)
 	}
 
+	// Ajouter la liste des événements à afficher aux données à envoyer au template HTML
 	data["events"] = events
 
 	return nil
