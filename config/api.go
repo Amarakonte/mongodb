@@ -43,7 +43,7 @@ func Api() {
 	// Insérer les données dans la collection "event" de la base de données MongoDB
 	eventCollection := client.Database("hackaton").Collection("event")
 	for _, event := range response.Results {
-		creatorID := "1" // Définir l'ID du créateur de l'événement
+		creatorID := "2" // Définir l'ID du créateur de l'événement
 		event.CreatorID = creatorID
 		event.Timestamp = time.Now().Unix()
 

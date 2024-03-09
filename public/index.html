@@ -21,17 +21,8 @@
 
           <hr>
 
-          <div class="notes">
-            <p>Rate : {{.Note}}/5 ({{.NbVote}})</p>
-          </div>
-
-          <hr>
-
           <div class="d-flex justify-content-between">
-            <a href="/profil?id={{.User.Id}}">
-              <button type="submit" class="btn btn-dark">Voir le profil de {{.User.Username }}</button>
-            </a>
-            <a href="/Event?Id={{.Id}}">
+            <a href="{{.URL}}">
               <button type="submit" class="btn btn-warning">Voir l'événement</button>
             </a>
           </div>
