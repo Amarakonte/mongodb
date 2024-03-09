@@ -44,7 +44,16 @@ func (databases *db) CreateRoleTable() error {
 }
 
 func (databases *db) CreateUserTable() error {
-	// Pas besoin de créer une table dans MongoDB
+	// Insérer les données initiales dans la collection 'user'
+	users := []interface{}{
+		bson.M{"username": "Paris Event", "email": "www.paris.fr", "password": "test", "roleID": 2},
+	}
+
+	_, err := databases.Database.Collection("user").InsertMany(context.Background(), users)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

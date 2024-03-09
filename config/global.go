@@ -22,7 +22,7 @@ type Event struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Date_start  string `json:"date_start"`
-	Date_endK   string `json:"date_end"`
+	Date_end    string `json:"date_end"`
 	URL         string `json:"url"`
 	CoverURL    string `json:"cover_url"`
 	CreatorID   string
